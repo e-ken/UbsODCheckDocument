@@ -1,0 +1,2098 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>UbsODCheckDocument</name>
+    </assembly>
+    <members>
+        <member name="T:UbsBusiness.UbsODCheckDocument">
+            <summary>
+            Класс проверки документов
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingIdBaseCurrency">
+            <summary>
+            Идентификатор базовой валюты
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingBicBank">
+            <summary>
+            Установка: БИК банка
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingInnBank">
+            <summary>
+            Установка: ИНН банка
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingKppBank">
+            <summary>
+            Установка: КПП банка
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingCorrAccountBank">
+            <summary>
+            Коррсчет банка
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingCheckApprovedBal2">
+            <summary>
+            Проверять по справочнику разрешенных счетов
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingNameBank">
+            <summary>
+            Установка: Наименование банка
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingNamePaymentDocument">
+            <summary>
+            Установка: Наименование плательщика/получателя для ПД
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingNameBranch">
+            <summary>
+            Установка: Наименование филиала
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.settingNameBranchFull">
+            <summary>
+            Установка: Наименование филиала (полное)
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.#ctor(UbsService.IUbsDbConnection,UbsService.IUbsWss,UbsBusiness.UbsODPayDoc)">
+            <summary>
+            Создание экземпляра класса проверки документа
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложения</param>
+            <param name="document">Платежный документ</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.#ctor(UbsService.IUbsDbConnection,UbsService.IUbsWss)">
+            <summary>
+            Создание экземпляра класса проверки нескольких документов, документ устанавливается через свойство объекта Document
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложения</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsLocate(System.String,System.String,System.String)">
+            <summary>
+            Определяет внутренний документ или внешний при вводе платежного документа:
+            Если установка Операционный день -&gt; Режим идентификации счета:
+            0 – то внешний или внутренний документ определяется по совпадению БИКа получателя и плательщика.
+            1..4 – то кроме БИК-ов в анализе участвует код отделения, взятый из счета получателя,
+            начиная с 13 позиции влево на количество символов, определяемым значением установки.
+            Полученный код ищется в списке отделений и если находится, то документ считается внутренним иначе внешним.
+            5.. - то признак документа внутренний или внешний будет определяться исходя из наличия записи в таблице
+            RC_ROUTE если запись для заданного БИК и кода отделения вырезанного из счета (4 позиции начиная с 10) 
+            будет найдена в таблице то документ будет считаться внешним иначе внутренним.
+            </summary>
+            <returns>true - внутренний, false - внешний</returns>
+            <exception cref="T:System.ArgumentException">БИК банка плательщика или получателя пусты, номер счета получателя не задан</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKeyAccount(System.String,System.String)">
+            <summary>
+            Проверка ключа счета
+            </summary>
+            <param name="bicAccount">БИК</param>
+            <param name="numAccount">Номер счета</param>
+            <returns>true - проверка успешна</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKeyAccount(System.String,System.String,System.Boolean)">
+            <summary>
+            Проверка ключа счета
+            </summary>
+            <param name="bicAccount">БИК</param>
+            <param name="numAccount">Номер счета</param>
+            <param name="isRKC">Признак счета: счет открыт в РКЦ (true), счет открыт в КБ (false)</param>
+            <returns>true - проверка успешна</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.LocateInfo(System.Boolean@,System.Boolean@)">
+            <summary>
+            Возвращает признак документа внутренний или внешний, а также признак единого центра прибыли
+            </summary>
+            <param name="isLocate">Признак документа внешний или внутренний(true - внутренний, false - внешний)</param>
+            <param name="isSingleProfitCenter">Признак единого центра прибыли</param>
+            <exception cref="T:System.ArgumentException">БИК банка плательщика получателя пусты, номер счета получателя не задан</exception>
+            <exception cref="T:System.InvalidOperationException">Значение в установке 'Операционный день -&gt; Режим идентификации счета' содержит недопустимое значение</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNumberDoc(System.String@)">
+            <summary>
+            Проверка номера документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+            <exception cref="T:System.InvalidOperationException">БИК внешнего банка не установлен объекту документ</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDateDoc(System.String@)">
+            <summary>
+            Проверка даты документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentDate(System.DateTime,System.String@)">
+            <summary>
+            Проверка даты документа
+            </summary>
+            <param name="documentDate">Дата документа</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentDate(System.Byte,System.DateTime,System.String@)">
+            <summary>
+            Проверка даты документа
+            </summary>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="documentDate">Дата документа</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckOcherPaymDoc(System.String@)">
+            <summary>
+            Проверка очередности платежа документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckPaymentPriority(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Byte,System.String@)">
+            <summary>
+            Проверка очередности платежа документа
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с СП</param>
+            <param name="paymentPriority">Очередность платежа</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKindDoc(System.String@)">
+            <summary>
+            Проверка вида документа на платежное требование/платежное поручение
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKindDoc(System.Byte,System.String@)">
+            <summary>
+            Проверка вида документа на диапазон 1..11 и 16,17
+            </summary>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKindDoc(System.Byte,System.String,System.String@)">
+            <summary>
+            Проверка вида документа
+            </summary>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="refSource">Источник поступления</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTypeSendDoc(System.String@)">
+            <summary>
+            Проверка вида отправки документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckSumDoc(System.String@)">
+            <summary>
+            Проверка суммы документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNumAccountPDoc(System.String@)">
+            <summary>
+            Проверка счета плательщика
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountPayer(System.String,System.String@)">
+            <summary>
+            Проверка счета плательщика
+            </summary>
+            <param name="payerAccount">Счет плательщика</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountPayer(System.String,System.Byte,System.DateTime,System.String@)">
+            <summary>
+            Проверка счета плательщика
+            </summary>
+            <param name="payerAccount">Счет плательщика</param>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="transactionDate">Дата операции</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountPayer(System.String,System.Byte,System.DateTime,System.Boolean,System.String@)">
+            <summary>
+            Проверка счета плательщика
+            </summary>
+            <param name="payerAccount">Счет плательщика</param>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="transactionDate">Дата операции</param>
+            <param name="ignoreState">Игнорировать состояние счета кроме Закрыт(1)</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBicRDoc(System.String@)">
+            <summary>
+            Проверка БИК-а получателя документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBicDangerous(UbsService.IUbsDbConnection,System.String,System.String@)">
+            <summary>
+            Проверка БИКа на опасные типы кредитных организаций
+            </summary>
+            <param name="connection">Соединение с БД</param>
+            <param name="bic">Бик получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNumCorrAccountRDoc(System.String@)">
+            <summary>
+            Проверка корсчета банка получателя документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBankNameRDoc(System.String@)">
+            <summary>
+            Проверка наименования банка получателя документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBankNameR(System.String,System.String,System.String@)">
+            <summary>
+            Проверка наименования банка получателя
+            </summary>
+            <param name="bicExtBank">БИК внешнего банка</param>
+            <param name="nameExtBank">Наименование внешнего банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBankDetails(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка реквизитов банка
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с СП</param>
+            <param name="bic">Бик банка</param>
+            <param name="name">Наименование банка</param>
+            <param name="corrAccount">Номер корр. счета банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена, false - проверка не пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBankDetails(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.String,System.String@)">
+            <summary>
+            Проверка реквизитов банка
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с СП</param>
+            <param name="bic">Бик банка</param>
+            <param name="corrAccount">Номер корр. счета банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена, false - проверка не пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBankDetails(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.String,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка реквизитов банка
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с СП</param>
+            <param name="bic">Бик банка</param>
+            <param name="name">Наименование банка</param>
+            <param name="corrAccount">Номер корр. счета банка</param>
+            <param name="chekName">Признак проверки наименования банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена, false - проверка не пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNumAccountRDoc(System.String@)">
+            <summary>
+            Проверка счета получателя документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+            <exception cref="T:System.ArgumentException">БИК счета ДБ или КР пусты, номер счета КР не задан</exception>
+            <exception cref="T:System.InvalidOperationException">Значение в установке 'Операционный день -&gt; Режим идентификации счета' содержит недопустимое значение</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNumAccountR(System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка счета получателя
+            </summary>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="bicExtBank">БИК внешнего банка</param>
+            <param name="accountExtBankNotUsed">Коррсчет внешнего банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+            <exception cref="T:System.ArgumentException">БИК счета ДБ или КР пусты, номер счета КР не задан</exception>
+            <exception cref="T:System.InvalidOperationException">Значение в установке 'Операционный день -&gt; Режим идентификации счета' содержит недопустимое значение</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountRecipient(System.Byte,System.String,System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка счета получателя
+            </summary>
+            <param name="payLocate">Направление документа</param>
+            <param name="creditAccount">Счет кредит</param>
+            <param name="recipientAccount">Счет получателя</param>
+            <param name="bicExteranalBank">БИК внешнего банка</param>
+            <param name="accountExternalBank">Корр. счет внешнего банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountRecipient(System.Byte,System.String,System.String,System.String,System.Byte,System.DateTime,System.String@)">
+            <summary>
+            Проверка счета получателя
+            </summary>
+            <param name="payLocate">Направление документа</param>
+            <param name="creditAccount">Счет кредит</param>
+            <param name="recipientAccount">Счет получателя</param>
+            <param name="bicExteranalBank">БИК внешнего банка</param>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="transactionDate">Дата операции</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountRecipient(System.Byte,System.String,System.String,System.String,System.Byte,System.DateTime,System.Boolean,System.String@)">
+            <summary>
+            Проверка счета получателя
+            </summary>
+            <param name="payLocate">Направление документа</param>
+            <param name="creditAccount">Счет кредит</param>
+            <param name="recipientAccount">Счет получателя</param>
+            <param name="bicExteranalBank">БИК внешнего банка</param>
+            <param name="kindDoc">Шифр документа ЦБ</param>
+            <param name="transactionDate">Дата операции</param>
+            <param name="ignoreState">Игнорировать состояние счета кроме Закрыт(1)</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKeyInn(System.String)">
+            <summary>
+            Проверка контрольного числа ИНН
+            </summary>
+            <param name="inn">ИНН</param>
+            <returns>Результат проверки, true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckInnPDoc(System.String@)">
+            <summary>
+            Проверка ИНН плательщика документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckInnRDoc(System.String@)">
+            <summary>
+            Проверка ИНН получателя документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckInnP(System.String,System.String,System.String@)">
+            <summary>
+            Проверка ИНН плательщика раздел А
+            </summary>
+            <param name="inn">ИНН плательщика</param>
+            <param name="straccount">Номер счета плательщика</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckInnR(System.String,System.String,System.String@)">
+            <summary>
+            Проверка ИНН получателя раздел А
+            </summary>
+            <param name="inn">ИНН получателя</param>
+            <param name="straccount">Номер счета получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckInnP(System.String,System.String@)">
+            <summary>
+            Проверка ИНН плательщика
+            </summary>
+            <param name="inn">ИНН получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckInnR(System.String,System.String@)">
+            <summary>
+            Проверка ИНН получателя
+            </summary>
+            <param name="inn">ИНН получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNamePayerLength(System.String,System.String@)">
+            <summary>
+            Проверка наименования плательщика на длину
+            </summary>
+            <param name="name">Наименование плательщика</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNamePayer(System.String@)">
+            <summary>
+            Проверка наименования плательщика документа на допустимые символы и соответствие наименованию владельца счета ИНН и КПП
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNamePayer(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.String@)">
+            <summary>
+            Проверка наименования плательщика документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNamePayer(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка наименования плательщика документа на допустимые символы и соответствие наименованию владельца счета, ИНН и КПП
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="kpp">КПП плательщика</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNamePayer(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка наименования плательщика документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="replaceAbbreviation">Заменять аббревиатуры</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNamePayer(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка наименования плательщика документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="kpp">КПП плательщика</param>
+            <param name="replaceAbbreviation">Заменять аббревиатуры</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRecipientLength(System.String,System.String@)">
+            <summary>
+            Проверка наименования получателя на длину и символы
+            </summary>
+            <param name="name">Наименование плательщика</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRecipient(System.String@)">
+            <summary>
+            Проверка наименования получателя документа на допустимые символы и соответствие наименованию владельца счета
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRecipient(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.String@)">
+            <summary>
+            Проверка наименования получателя документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование получателя</param>
+            <param name="inn">ИНН получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRecipient(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка наименования получателя документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование получателя</param>
+            <param name="inn">ИНН получателя</param>
+            <param name="kpp">КПП получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRecipient(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка наименования получателя документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование получателя</param>
+            <param name="inn">ИНН получателя</param>
+            <param name="replaceAbbreviation">Заменять аббревиатуры</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRecipient(UbsBusiness.UbsODCheckDocument.MakeNameParameters,System.String,System.String,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка наименования получателя документа на допустимые символы и соответствие наименованию владельца счета и ИНН
+            </summary>
+            <param name="p">Параметры платежа</param>
+            <param name="name">Наименование получателя</param>
+            <param name="inn">ИНН получателя</param>
+            <param name="kpp">КПП получателя</param>
+            <param name="replaceAbbreviation">Заменять аббревиатуры</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameRDoc(System.String@)">
+            <summary>
+            Проверка наименования получателя документа на допустимые символы
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNameR(System.String,System.String@)">
+            <summary>
+            Проверка наименования получателя документа
+            </summary>
+            <param name="nameR">Наименование получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNoteDoc(System.String@)">
+            <summary>
+            Проверка назначения платежа документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+            <exception cref="T:System.InvalidOperationException">Номер счета ДБ или КР пусты либо указаны неверно</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNoteForForeignExchangeControl(System.String@)">
+            <summary>
+            Проверка назначения платежа документа на наличии/отсутствие КВВО
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+            <exception cref="T:System.InvalidOperationException">Номер счета ДБ или КР пусты либо указаны неверно</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNote(System.Byte,System.String,System.Byte,System.String,System.String,System.String,System.String,System.Byte,System.String,System.String@)">
+            <summary>
+            Проверка назначения платежа
+            </summary>
+            <param name="kinddoc">Вид документа</param>
+            <param name="description">Наименование платежа</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="accountDb">Номер счета ДБ</param>
+            <param name="accountP">Номер счета плательщика</param>
+            <param name="accountCr">Номер счета КР</param>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="paylocate">Направление документа</param>
+            <param name="field101">Статус составителя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+            <exception cref="T:System.InvalidOperationException">Номер счета ДБ или КР пусты либо указаны неверно</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckConditionPayDoc(System.String@)">
+            <summary>
+            Проверка условия оплаты документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckPaymentCondition(System.Byte,System.String,System.String@)">
+            <summary>
+            Проверка основания (условия) оплаты документа
+            </summary>
+            <param name="kinddoc">Вид документа (Шифр документа по ЦБ)</param>
+            <param name="paymentCondition">Основание (условие) оплаты</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTermAcceptanceDoc(System.String@)">
+            <summary>
+            Проверка срока акцепта документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTaxFieldsDoc(System.String@)">
+            <summary>
+            Проверка налоговых полей документа
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTaxFields(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка налоговых полей
+            </summary>
+            <param name="field101">Статус составителя расчетного документа</param>
+            <param name="field102">КПП плательщика</param>
+            <param name="field103">КПП получателя</param>
+            <param name="field104">Код бюджетной классификации</param>
+            <param name="field105">ОКТМО</param>
+            <param name="field106">Основание налогового платежа</param>
+            <param name="field107">Налоговый период</param>
+            <param name="field108">Номер налогового документа</param>
+            <param name="field109">Дата налогового документа</param>
+            <param name="field110">Тип налогового платежа</param>
+            <param name="accountDb">Номер счета ДБ</param>
+            <param name="accountP">Номер счета плательщика</param>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="bicExtBank">БИК внешнего банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTaxFields(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка налоговых полей
+            </summary>
+            <param name="field101">Статус составителя расчетного документа</param>
+            <param name="field102">КПП плательщика</param>
+            <param name="field103">КПП получателя</param>
+            <param name="field104">Код бюджетной классификации</param>
+            <param name="field105">ОКТМО</param>
+            <param name="field106">Основание налогового платежа</param>
+            <param name="field107">Налоговый период</param>
+            <param name="field108">Номер налогового документа</param>
+            <param name="field109">Дата налогового документа</param>
+            <param name="field110">Тип налогового платежа</param>
+            <param name="field22">УИН</param>
+            <param name="accountDb">Номер счета ДБ</param>
+            <param name="accountP">Номер счета плательщика</param>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="bicExtBank">БИК внешнего банка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTaxFields(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка налоговых полей
+            </summary>
+            <param name="field101">Статус составителя расчетного документа</param>
+            <param name="field102">КПП плательщика</param>
+            <param name="field103">КПП получателя</param>
+            <param name="field104">Код бюджетной классификации</param>
+            <param name="field105">ОКТМО</param>
+            <param name="field106">Основание налогового платежа</param>
+            <param name="field107">Налоговый период</param>
+            <param name="field108">Номер налогового документа</param>
+            <param name="field109">Дата налогового документа</param>
+            <param name="field110">Тип налогового платежа</param>
+            <param name="uin">УИН</param>
+            <param name="uidPayment">Уникальный идентификатор платежа</param>
+            <param name="uidPayer">Уникальный идентификатор плательщика</param>
+            <param name="field60">ИНН плательщика</param>
+            <param name="field61">ИНН получателя</param>
+            <param name="accountDb">Номер счета ДБ</param>
+            <param name="accountP">Номер счета плательщика</param>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="bicExtBank">БИК внешнего банка</param>
+            <param name="isReestr">Проверка по реестру</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsNeedForeignExchangeControl">
+            <summary>
+            Определяет необходимость КВВО
+            </summary>
+            <returns>Признак необходимости валютного котроля (true)</returns>
+            <exception cref="T:System.InvalidOperationException">Номер счета ДБ или КР пуст или длина счета неверна</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsNeedForeignExchangeControlDoc">
+            <summary>
+            Определяет необходимость КВВО в назначении платежа
+            </summary>
+            <returns>Признак необходимости валютного котроля в документе (true)</returns>
+            <exception cref="T:System.InvalidOperationException">Номер счета ДБ или КР пуст или длина счета неверна</exception>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsNeedForeignExchangeControl(System.String,System.String,System.String)">
+            <summary>
+            Определяет необходимость КВВО в назначении платежа
+            </summary>
+            <param name="accountDb">Номер счета ДБ</param>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="accountCr">Номер счета КР</param>
+            <returns>Признак необходимости указания вида валютной операции и признака валютного контроля (true)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetForeignExchangeControl(System.String,System.String,System.String)">
+            <summary>
+            Получить вариант требования КВВО (в документе/в документе и назначении платежа) 
+            </summary>
+            <param name="accountDb">Номер счета ДБ</param>
+            <param name="accountR">Номер счета получателя</param>
+            <param name="accountCr">Номер счета КР</param>
+            <returns>0 - КВВО в документе не требуется, 1 - требуется в документе, 2 - требуется в назначении платежа</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsAccClientsDoc(System.String)">
+            <summary>
+            Определяет принадлежность счета к банковским счетам и счетам вкладов клиентов
+            </summary>
+            <param name="numAccount">Номер счета</param>
+            <returns>Возвращает признак принадлежности</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetTypeNamePayerRecipient(System.String,System.Int32@)">
+            <summary>
+            Получить тип наименования плательщика/получателя по номеру счета
+            </summary>
+            <param name="numAccount">Номер счета</param>
+            <param name="typeDef">Используемый тип наименования (0 - наименование клиента, 1 - наименование счета, 2 - наименование банка)</param>
+            <returns>Признак необходимости применения типа</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsCustomerAccount(System.String)">
+            <summary>
+            Определяет принадлежность счета к банковским счетам и счетам вкладов клиентов
+            </summary>
+            <param name="numAccount">Номер счета</param>
+            <returns>Возвращает признак принадлежности</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetFormFillingInformationP(UbsBusiness.UbsComClient)">
+            <summary>
+            Получение дополнительных сведений о плательщике согласно виду
+            заполнения информации о плательщике
+            </summary>
+            <param name="client">Клиент - плательщик</param>
+            <returns>Дополнительные сведения о плательщике</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSignClient(System.Byte,System.Byte,System.String)">
+            <summary>
+            Вернуть признак плательщика ИП/Физ.лицо для индивидуального предпринимателя
+            </summary>
+            <param name="kindClient">Вид клиента</param>
+            <param name="signClient">Тип клиента</param>
+            <param name="numAccount">Номер счета</param>
+            <returns>Тип клиента</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameP(System.Collections.Generic.List{System.String},System.Collections.Generic.Dictionary{System.String,System.Int32},System.String,System.String,System.String,System.String,System.Collections.Generic.List{System.String},System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Byte,System.Byte,System.Byte,System.Byte,System.Byte,System.String,System.String,System.Decimal,System.Decimal,System.String,System.String,System.DateTime,System.String,System.String,System.Boolean,UbsService.IUbsWss,System.String@,System.String@,System.String@,System.String@,System.String@)">
+            <summary>
+            
+            </summary>
+            <param name="settingBalAccClients"></param>
+            <param name="settingDefaultNamePaymentRecipient"></param>
+            <param name="settingNamePaymentDocument"></param>
+            <param name="settingInnBank"></param>
+            <param name="settingKppBank"></param>
+            <param name="settingOkatoBank"></param>
+            <param name="settingIsNeedClientActivity"></param>
+            <param name="numAccount"></param>
+            <param name="nameAccount"></param>
+            <param name="numAccountR"></param>
+            <param name="nameClient"></param>
+            <param name="innClient"></param>
+            <param name="kppClient"></param>
+            <param name="okatoClient"></param>
+            <param name="kindOfActivityClient"></param>
+            <param name="kindDoc"></param>
+            <param name="typeDoc"></param>
+            <param name="payLocate"></param>
+            <param name="kindClient"></param>
+            <param name="signClient"></param>
+            <param name="address"></param>
+            <param name="field101"></param>
+            <param name="oborot"></param>
+            <param name="settingLimSummaAddInfoPayer"></param>
+            <param name="bicDb"></param>
+            <param name="bicCr"></param>
+            <param name="documentDate"></param>
+            <param name="settingAdditionalTextPayer"></param>
+            <param name="uin"></param>
+            <param name="onlyByClient"></param>
+            <param name="name"></param>
+            <param name="inn"></param>
+            <param name="kpp"></param>
+            <param name="okato"></param>
+            <param name="testname"></param>
+            <param name="ubs"></param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameP">
+            <summary>
+            Формирование наименования плательщика по документу
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameP(UbsService.UbsParam)">
+            <summary>
+            Формирование наименования плательщика
+            </summary>
+            <param name="p">Параметры наименования плательщика
+            Передаются следующие параметры:
+                * Дата документа
+                * Вид документа
+                * Вид клиента
+                * Тип клиента
+                * ИНН клиента
+                * КПП клиента
+                * Код ОКАТО клиента
+                * Номер счета плательщика
+                * Наименование клиента
+                * Наименование счета
+                * БИК банка плательщика
+                * КПП банка плательщика
+                * Код ОКАТО банка плательщика
+                * БИК банка получателя
+                * Статус составителя расчетного документа [поле 101]
+                * Сумма документа
+                * Адрес клиента [заполняется вызовом GetFormFillingInformationP]
+                * Вид деятельности физ. лица
+                * Признак плательщика
+            </param>
+            <returns>Наименование плательщика</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.FillAttrP">
+            <summary>
+            Установить документу аттрибуты плательщика (Наименование, ИНН, КПП)
+            В случае внутреннего или исходящего документа, если ИНН и Наименование плательщика
+            не были заполнены ранее, заполняются поля: Наименование, ИНН, КПП
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.FillPayerAttributes">
+            <summary>
+            Установить документу аттрибуты плательщика (Наименование, ИНН, КПП, ОКТМО)
+            В случае внутреннего или исходящего документа, если ИНН и Наименование плательщика
+            не были заполнены ранее, заполняются поля: Наименование, ИНН, КПП, ОКТМО
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPayerAttributes(System.String@,System.String@,System.String@)">
+            <summary>
+            Получить для документа аттрибуты плательщика: Наименование, ИНН, КПП
+            </summary>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="kpp">КПП плательщика</param>
+            <returns>True - атрибуты были вычеслены, False - атрибуты были взяты из соответствующих полей документа</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPayerAttributes(System.String@,System.String@,System.String@,System.String@)">
+            <summary>
+            Получить для документа аттрибуты плательщика: Наименование, ИНН, КПП, ОКТМО
+            </summary>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="kpp">КПП плательщика</param>
+            <param name="oktmo">ОКТМО плательщика</param>
+            <returns>True - атрибуты были вычеслены, False - атрибуты были взяты из соответствующих полей документа</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNamePayer(UbsBusiness.UbsODCheckDocument.MakeNameParameters)">
+            <summary>
+            Получить наименование плательщика
+            </summary>
+            <param name="p">Параметры формирования наименования</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameR(System.Collections.Generic.List{System.String},System.Collections.Generic.Dictionary{System.String,System.Int32},System.String,System.String,System.String,System.String,System.Collections.Generic.List{System.String},System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Byte,System.Byte,System.Byte,System.Byte,System.Byte,System.String,System.Boolean,System.String@,System.String@,System.String@,System.String@,System.String@)">
+            <summary>
+            
+            </summary>
+            <param name="settingBalAccClients"></param>
+            <param name="settingDefaultNamePaymentRecipient"></param>
+            <param name="settingNamePaymentDocument"></param>
+            <param name="settingInnBank"></param>
+            <param name="settingKppBank"></param>
+            <param name="settingOkatoBank"></param>
+            <param name="settingIsNeedClientActivity"></param>
+            <param name="numAccount"></param>
+            <param name="nameAccount"></param>
+            <param name="nameClient"></param>
+            <param name="innClient"></param>
+            <param name="kppClient"></param>
+            <param name="okatoClient"></param>
+            <param name="kindOfActivityClient"></param>
+            <param name="kindDoc"></param>
+            <param name="typeDoc"></param>
+            <param name="payLocate"></param>
+            <param name="kindClient"></param>
+            <param name="signClient"></param>
+            <param name="address"></param>
+            <param name="onlyByClient"></param>
+            <param name="name"></param>
+            <param name="inn"></param>
+            <param name="kpp"></param>
+            <param name="okato"></param>
+            <param name="testname">Имя для теста наименования получателя (без адреса и всего лишнего)</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameR">
+            <summary>
+            Формирование наименования получателя по документу
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameR(UbsService.UbsParam)">
+            <summary>
+            Формирование наименования получателя по переданным параметрам
+            </summary>
+            <param name="p">Параметры наименования получателя
+            Передаются следующие параметры:
+                * Признак плательщика
+                * Вид документа
+                * Вид клиента
+                * ИНН клиента
+                * КПП клиента
+                * Номер счета получателя
+                * Наименование клиента
+                * Наименование счета
+                * ИНН банка получателя
+                * КПП банка получателя
+            </param>
+            <returns>Наименование получателя</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.FillAttrR">
+            <summary>
+            Установить документу аттрибуты получателя (Наименование, ИНН, КПП)
+            В случае внутреннего или входящего документа, если ИНН и Наименование получателя
+            не были заполнены ранее, заполняются поля: Наименование, ИНН, КПП
+            ИНН для кассовых ордеров не заполняется, если ИНН в документе пусто
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.FillRecipientAttributes">
+            <summary>
+            Установить документу аттрибуты получателя (Наименование, ИНН, КПП)
+            В случае внутреннего или входящего документа, если ИНН и Наименование получателя
+            не были заполнены ранее, заполняются поля: Наименование, ИНН, КПП
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetRecipientAttributes(System.String@,System.String@,System.String@)">
+            <summary>
+            Получить для документа аттрибуты получателя: Наименование, ИНН, КПП
+            </summary>
+            <param name="name">Наименование плательщика</param>
+            <param name="inn">ИНН плательщика</param>
+            <param name="kpp">КПП плательщика</param>
+            <returns>True - атрибуты были вычеслены, False - атрибуты были взяты из соответствующих полей документа</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameRecipient(UbsBusiness.UbsODCheckDocument.MakeNameParameters)">
+            <summary>
+            Получить наименование получателя
+            </summary>
+            <param name="p">Параметры формирования наименования</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetKindClientName(UbsBusiness.UbsComClient)">
+            <summary>
+            Получить полное, укороченное или краткое имя клиента согласно значению в установке
+            </summary>
+            <param name="client">Клиент</param>
+            <returns>Наименование клиента</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsResidentAccounts">
+            <summary>
+            Определяет принадлежность счетов документа к счетам резидентов а также необходимость валютного контроля документа
+            </summary>
+            <returns>Признак принадлежности счетов документа к счетам резидентов (true)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetDataForSigning(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Byte,System.Int32,System.Int32,System.Byte,System.Object[]@)">
+            <summary>
+            Получить данные для подписания
+            </summary>
+            <param name="iUbsDb">Интерфейс взаимодействия с БД</param>
+            <param name="iUbsWss">Интерфейс взаимодействия с СП</param>
+            <param name="procVersion">Версия процедуры получения данных</param>
+            <param name="typeObject">Тип объекта (0 - документы, 1 - табличные ордера)</param>
+            <param name="id">Идентификатор документа либо табличного ордера</param>
+            <param name="razdel">Раздел</param>
+            <param name="outParameters">Выходные параметры [Вид в типе подписи, Источник создания]</param>
+            <returns>Данные для подписания</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetBlockedAmountAccount(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime,System.Boolean@,System.Decimal@,System.Decimal@,System.Decimal@)">
+            <summary>
+            Возвращает заблокированную сумму по пассивному счету в валюте счета
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентифйикатор счета</param>
+            <param name="dateEnd">Дата окончания</param>
+            <param name="isArrestAccount">Признак ареста счета ИФНС</param>
+            <param name="blockedAmmontTax">Сумма приостановлений ИФНС в валюте счета</param>
+            <param name="blockedAmmontBS">Сумма приостановлений ССП в валюте счета</param>
+            <param name="blockedAmmontFTS">Сумма приостановлений ФТС в валюте счета</param>
+            <returns>Заблокированная сумма по счету</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSumCardIndex(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить суммы документов стоящих на картотеке 1 и 2
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентифйикатор счета</param>
+            <param name="sum1">Сумма картотеки 1</param>
+            <param name="sum2">Сумма картотеки 2</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSumCardIndex(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить суммы документов стоящих на картотеке 1 и 2
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="straccount">Номер счета</param>
+            <param name="sum1">Сумма картотеки 1</param>
+            <param name="sum2">Сумма картотеки 2</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSumCardIndex(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.Int32[],System.Decimal@,System.Decimal@,System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить суммы документов стоящих на картотеке 1 и 2
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентифйикатор счета</param>
+            <param name="excludesIdDocuments">Массив исключаемых документов</param>
+            <param name="sum1Db">Сумма картотеки 1 Дб</param>
+            <param name="sum1Cr">Сумма картотеки 1 Кр</param>
+            <param name="sum2Db">Сумма картотеки 2 Дб</param>
+            <param name="sum2Cr">Сумма картотеки 2 Кр</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSumCardIndexCurrency(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime,System.Int32[],System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить суммы документов стоящих на валютной картотеке 2
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентифйикатор счета</param>
+            <param name="dateEnd">Дата окночания</param>
+            <param name="excludesIdDocuments">Массив идентификаторов документов исключаемых из поиска</param>
+            <param name="sumCurrency2">Сумма валютной картотеки 2</param>
+            <param name="sumCurrency2InCurrency">Сумма валютной картотеки 2 в валюте счета</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPlanOborotA(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime,System.Int32[],System.Byte[],System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить плановые обороты по счету раздела А
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата окончания</param>
+            <param name="excludesIdDocuments">Массив исключаемых документов</param>
+            <param name="includesKindDocs">Массив требуемых видов документов</param>
+            <param name="totalOborotDb">Сумарный дебетовый оборот</param>
+            <param name="totalOborotCr">Сумарный кредитовый оборот</param>
+            <returns>Плановый оборот = (Плановый кредитовый оборот - Плановый дебетовый оборот)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPlanOborotCurrency(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime,System.Int32[],System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить плановые обороты по счету раздела А для валютных требований
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата окончания</param>
+            <param name="excludesIdDocuments">Массив исключаемых документов</param>
+            <param name="totalOborotDb">Сумарный дебетовый оборот</param>
+            <param name="totalOborotCr">Сумарный кредитовый оборот</param>
+            <returns>Плановый оборот = (Плановый кредитовый оборот - Плановый дебетовый оборот)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPlanOborot(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Byte,System.Int32,System.DateTime,System.Int32[],System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить плановые обороты
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="razdel">Номер раздела 0 - А, 1 - Б, 2 - B, 3 - Г, 4 - Д</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата конца интервала</param>
+            <param name="excludesIdDocuments">Массив идентификаторов документов исключаемых из поиска</param>
+            <param name="totalOborotDb">Плановый дебетовый оборот</param>
+            <param name="totalOborotCr">Плановый кредитовый оборот</param>
+            <returns>Плановый оборот = (Плановый кредитовый оборот - Плановый дебетовый оборот)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSumCommissionRKO(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime,System.Int32[],System.Int32@,System.Decimal@)">
+            <summary>
+            Получить суммы комиссий за РКО
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата конца интервала</param>
+            <param name="excludesIdDocuments">Массив идентификаторов документов исключаемых из поиска</param>
+            <param name="contractId">Идентификатор договора РКО</param>
+            <param name="sumCommission">Сумма комиссий</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetOborotConfirmedFolder(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.DateTime,System.Int32,System.Int32)">
+            <summary>
+            Получить сумарный оборот непроведенных документов по счету в сквитованных пачках
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="operationDate">Дата операции</param>
+            <param name="accountId">Идентификатор счета</param>
+            <param name="folderId">Идентификатор пачки для исключения</param>
+            <returns>Сумарный оборот</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetOborotConfirmedFolder(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.DateTime,System.Int32,System.Int32,System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить сумарный оборот непроведенных документов по счету в сквитованных пачках
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="operationDate">Дата операции</param>
+            <param name="accountId">Идентификатор счета</param>
+            <param name="folderId">Идентификатор пачки для исключения</param>
+            <param name="oborotDb">Дебетовый оборот</param>
+            <param name="oborotCr">Кредитовый оборот</param>
+            <returns>Сумарный оборот</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPlanOborotA(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime,System.Int32[],System.Byte[],System.Boolean,System.Decimal@,System.Decimal@)">
+            <summary>
+            Получить плановые обороты
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата окончания</param>
+            <param name="excludesIdDocuments">Массив исключаемых документов</param>
+            <param name="includesKindDocs">Массив требуемых видов документов</param>
+            <param name="includeDocCard">Учесть картотечные документы</param>
+            <param name="totalOborotDb">Сумарный дебетовый оборот</param>
+            <param name="totalOborotCr">Сумарный кредитовый оборот</param>
+            <returns>Плановый оборот = (Плановый кредитовый оборот - Плановый дебетовый оборот)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPrognosisOborot(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Byte,System.Int32,System.DateTime,System.Int32[],System.Decimal@,System.Decimal@,System.Decimal@,System.Decimal@)">
+            <summary>
+            Прогнозируемые обороты по счету
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="razdel">Номер раздела 0 - А, 1 - Б, 2 - B, 3 - Г, 4 - Д</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата конца интервала</param>
+            <param name="excludesIdDocuments">Массив идентификаторов документов исключаемых из поиска</param>
+            <param name="totalOborotDb">Плановый дебетовый оборот</param>
+            <param name="totalOborotCr">Плановый кредитовый оборот</param>
+            <param name="totalOborot">Плановый оборот = (Плановый кредитовый оборот - Плановый дебетовый оборот)</param>
+            <param name="blockedAmountAccount">Заблокированная сумма по счету</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetPrognosisOborot(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Byte,System.Int32,System.DateTime,System.Int32[],System.Byte[],System.Boolean,System.Boolean,System.Boolean,System.Decimal@,System.Decimal@,System.Boolean@,System.Decimal@,System.Decimal@,System.Decimal@,System.Decimal@)">
+            <summary>
+            Прогнозируемые обороты по счету
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="razdel">Номер раздела 0 - А, 1 - Б, 2 - B, 3 - Г, 4 - Д</param>
+            <param name="idAccount">Идентификатор счета</param>
+            <param name="dateEnd">Дата конца интервала</param>
+            <param name="excludesIdDocuments">Массив идентификаторов документов исключаемых из поиска</param>
+            <param name="includesKindDocs">Массив видов документов для поиска</param>
+            <param name="includePlatDoc">Учесть платежные документы</param>
+            <param name="includeDocCard">Учесть документы картотеки</param>
+            <param name="includeBlockedAmount">Учесть заблокированные суммы</param>
+            <param name="totalOborotDb">Плановый дебетовый оборот</param>
+            <param name="totalOborotCr">Плановый кредитовый оборот</param>
+            <param name="isArrestAccount">Признак ареста счета ИФНС</param>
+            <param name="blockedAmmontTax">Сумма приостановлений ИФНС в валюте счета</param>
+            <param name="blockedAmmontBS">Сумма приостановлений ССП в валюте счета</param>
+            <param name="sum1">Сумма картотеки 1</param>
+            <param name="sum2">Сумма картотеки 2</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetAccountPrognosis(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Byte,System.Int32,UbsBusiness.UbsODCheckDocument.AccountPrognosis)">
+            <summary>
+            Прогнозируемые обороты по счету
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="razdel">Номер раздела 0 - А, 1 - Б, 2 - B, 3 - Г, 4 - Д</param>
+            <param name="accountId">Идентификатор счета</param>
+            <param name="prognosis">Параметры учета прогнозируемого остатка</param>
+            <returns>Сумма прогнозируемого остатка</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.FindConditionIFNS(UbsService.IUbsDbConnection,UbsService.IUbsWss,UbsBusiness.UbsODPayDoc,System.Boolean@,System.String@)">
+            <summary>
+            Проверить подходит ли документ раздела А под условия разрешающие списания при блокировке ИФНС
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с СП</param>
+            <param name="document">Платежный документ раздела А</param>
+            <param name="needControl">Признак необходимости постановки документа на ручной контроль</param>
+            <param name="comment">Причина для постановкуи документа на ручной контроль</param>
+            <returns>true - документ подходит под условия</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBlockedAccount(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.DateTime)">
+            <summary>
+            Проверка наличия приостановлений ИФНС и ареста суммы ССП по счетам клиента
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="idClient">Идентификатор клиента</param>
+            <param name="dateCheck">Дата проверки</param>
+            <returns>маска наличия 0 - нет, 1 - бит арест ИФНС на сумму, 2 - бит арест ССП на сумму, 3 - бит ИФНС - арест счета, 4 - бит арест ФТС на сумму, 5 - бит ФТС - арест счета </returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckSumControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.Decimal,System.Byte)">
+            <summary>
+            Проверка суммы дополнительного контроля
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="bicR">БИК банка получателя</param>
+            <param name="sum">Сумма документа в рублях</param>
+            <param name="kindClient">Вид клиента</param>
+            <returns>Результат проверки true - проверка пройдена, false - проверка не пройдена требуется дополнительный контроль</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetStateControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.String)">
+            <summary>
+            Проверка контроля документа
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <param name="sidControl">СИД вида запрашиваемого контроля</param>
+            <returns>Контроль не устанавливался (-1), контроль пройден (0), стадия прохождения контроля (>0)</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.SetStateControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.String,System.Int32)">
+            <summary>
+            Установка стадии контроля документа
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <param name="sidControl">СИД вида запрашиваемого контроля</param>
+            <param name="state">Стадия прохождения контроля</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.SetStateControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,UbsBusiness.UbsODPayDoc,System.String,System.Int32,System.String,System.String)">
+            <summary>
+            Установка стадии контроля документа
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="document">Документа раздела А</param>
+            <param name="sidControl">СИД вида запрашиваемого контроля</param>
+            <param name="state">Стадия прохождения контроля</param>
+            <param name="reason">Причина постановки на контроль</param>
+            <param name="rejectReason">Причина отказа прохождения контроля</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsTerror(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Проверка прохождения террористического контроля
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <returns>true - признак причастности документа к террористической деятельности</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetListStatusCreater">
+            <summary>
+            Получить список статусов состовителей (список значений поля 101)
+            </summary>
+            <returns>Массив массивов</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNonAcceptanceDebitAdditionalAgreement(System.DateTime,System.Byte,System.String,System.String,System.String,System.String,System.String@,UbsService.UbsParam@)">
+            <summary>
+            Проверка назначения платежа на содержание в нем реквизитов доп. соглашения на безакцептное списание (номера договора, даты договора, пункта договора)
+            </summary>
+            <param name="dateTransaction">Дата проверки</param>
+            <param name="payLocate">Направление документа</param>
+            <param name="payerAccount">Счет списания</param>
+            <param name="recipientAccount">Счет зачисления</param>
+            <param name="bicExternalBank">БИК внешнего банка</param>
+            <param name="description">Назначение платежа</param>
+            <param name="message">Сообщение об ошибке</param>
+            <param name="additionalAgreement">Доп. соглашение</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckNonAcceptanceDebitAdditionalAgreement(System.DateTime,System.Byte,System.String,System.String,System.String,System.String,System.String,System.String@,UbsService.UbsParam@)">
+            <summary>
+            Проверка назначения платежа на содержание в нем реквизитов доп. соглашения на безакцептное списание (номера договора, даты договора, пункта договора)
+            </summary>
+            <param name="dateTransaction">Дата проверки</param>
+            <param name="payLocate">Направление документа</param>
+            <param name="payerAccount">Счет списания</param>
+            <param name="recipientAccount">Счет зачисления</param>
+            <param name="bicExternalBank">БИК внешнего банка</param>
+            <param name="description">Назначение платежа</param>
+            <param name="recipientInn">ИНН клиента счета зачисления</param>
+            <param name="message">Сообщение об ошибке</param>
+            <param name="additionalAgreement">Доп. соглашение</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.String,System.Byte,System.DateTime,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="datePay">Дата поступления в банк плательщика</param>
+            <param name="field101">Статус составителя</param>
+            <param name="extendProtocol">Формировать расширенный протокол</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.DateTime,System.String,System.Byte,System.DateTime,System.String,System.Boolean,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="operationDate">Дата операции</param>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="datePay">Дата поступления в банк плательщика</param>
+            <param name="field101">Статус составителя</param>
+            <param name="extendProtocol">Формировать расширенный протокол</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.DateTime,System.String,System.Byte,System.DateTime,System.String,System.Boolean,System.Decimal@,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="operationDate">Дата операции</param>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="datePay">Дата поступления в банк плательщика</param>
+            <param name="field101">Статус составителя</param>
+            <param name="extendProtocol">Формировать расширенный протокол</param>
+            <param name="sum">Общая сумма приоритетных документов</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(UbsBusiness.UbsODPayDoc,System.Boolean,System.Int32[],System.Decimal@,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="document">дата операции</param>
+            <param name="extendProtocol">Формировать расширенный протокол</param>
+            <param name="excludeDocumentIds">Ид. документов исключаемых из оборотов</param>
+            <param name="sum">Общая сумма приоритетных документов</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.DateTime,System.String,System.Byte,System.DateTime,System.String,System.Boolean,System.Int32[],System.Decimal@,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="operationDate">дата операции</param>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="datePay">Дата поступления в банк плательщика</param>
+            <param name="field101">Статус составителя</param>
+            <param name="extendProtocol">Формировать расширенный протокол</param>
+            <param name="excludeDocumentIds">Ид. документов исключаемых из оборотов</param>
+            <param name="sum">Общая сумма приоритетных документов</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.String,System.Byte,System.DateTime,System.Boolean,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="datePay">Дата поступления в банк плательщика</param>
+            <param name="extendProtocol">Формировать расширенный протокол</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.String,System.Byte,System.DateTime,System.String@)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="priorityPay">Очередность платежа</param>
+            <param name="datePay">Дата поступления в банк плательщика</param>
+            <param name="message">Строка с ошибкой и со списком документов</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDocumentOnCardIndex2(System.String)">
+            <summary>
+            Проверка отсутствия документов плательщика на второй картотеке
+            </summary>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <returns>true - документы на второй картотеке по счету не найдены, false - документы найдены</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKeyUIN(System.String)">
+            <summary>
+            Проверка ключа уникального идентификатора начисления
+            </summary>
+            <param name="uin">Уникальный идентификатор начисления</param>
+            <returns>Результат проверки, true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKeyUIDPayment(System.String,System.String)">
+            <summary>
+            Проверка ключа уникального идентификатора платежа
+            </summary>
+            <param name="straccount">Номер счета</param>
+            <param name="uidPayment">Уникальный идентификатор платежа</param>
+            <returns>Результат проверки, true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckCreditClient(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Проверка кредитующихся клиентов
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckKppPayer(System.String,System.String,System.String,System.String@)">
+            <summary>
+            Проверка КПП плательщика
+            </summary>
+            <param name="straccount">Номер счета плательщика</param>
+            <param name="kpp">КПП плательщика</param>
+            <param name="field101">Статус составителя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckAccountCodeCurrency(System.String,System.String[])">
+            <summary>
+            Проверка кода валюты в номере счета
+            </summary>
+            <param name="straccount">Номер счета</param>
+            <param name="codes">Допустимые коды валют</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.SearchAccountInCloseList(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.String)">
+            <summary>
+            Поиск по списку закрытых счетов и правоприемников
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="bic">БИК банка</param>
+            <param name="straccount">Номер счета</param>
+            <returns>Найденная запись</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckPaymentOrder(System.String@)">
+            <summary>
+            Проверка полей платежного ордера
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsPayerResidentFzl">
+            <summary>
+            Является ли плательщик физ. лицом резидентом
+            </summary>
+            <returns>true - плательщик физ. лицо резидент</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckApprovedBal2(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.String,System.String@)">
+            <summary>
+            Поиск по списку разрешенных балансовых счетов
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="bal2">Балансовый счет второго порядка</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsInnterRegionPayment(System.String)">
+            <summary>
+            Межрегиональный платеж
+            </summary>
+            <param name="bic">БИК банка получателя</param>
+            <returns>true - платеж межрегиональный</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTypeSend(System.Byte,System.Byte,System.String,System.String@)">
+            <summary>
+            Проверка вида отправки платежа 
+            </summary>
+            <param name="typeSend">Вид отправки платежа</param>
+            <param name="kinddoc">Шифр документа ЦБ</param>
+            <param name="bic">БИК банка получателя</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetSubFormatRc">
+            <summary>
+            РЦ получить активный субформат
+            </summary>
+            <returns>Активный субформат</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckBankBesp(System.String,System.String,System.String,System.DateTime,System.Byte,System.String@)">
+            <summary>
+            РЦ проверка банка по справочнику БЭСП
+            </summary>
+            <param name="bic">Бик банка получателя</param>
+            <param name="accountExtBank">Корр. счет банка получателя</param>
+            <param name="recipientAccount">Номер счета получателя</param>
+            <param name="transactionDate">Дата проведения</param>
+            <param name="typeSend">Вид отправки документа</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckDuplicatePayments(System.String,System.String,System.DateTime,System.DateTime,System.String,System.String,System.Decimal)">
+            <summary>
+            РЦ Проверка дубликаитов платежей в течении 10 дней
+            </summary>
+            <param name="number">Номер документа</param>
+            <param name="bicExtBank">БИК внешнего банка</param>
+            <param name="documentDate">Дата документа</param>
+            <param name="transactionDate">Дата проведения документа</param>
+            <param name="payerAccount">Номер счета плательщика</param>
+            <param name="recipientAccount">Номер счета получателя</param>
+            <param name="oborot">Сумма списания</param>
+            <returns>true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckPaymentCreated(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.String@)">
+            <summary>
+            РЦ Проверка создан ли платеж по документу
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>true - Проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckMarkTerroristActivities(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Проверка наличия документа в списке документов отмеченных в террористической деятельности (проверка обязательного контроля).
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <returns>true - проверка пройдена, документ в списке отсутствует</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetMarkTerroristActivities(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Проверка наличия документа в списке документов отмеченных в террористической деятельности (проверка обязательного контроля).
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <returns>-1 - документ не ставился на обязателльный контроль, 0 - обязательный контроль пройден, 1 - обязательный контроль не пройден</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.SetMarkTerroristActivities(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Установить отметку требования прохождения обязательного контроля (подозрение в террористической деятельности) для документа. 
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.SetMarkTerroristActivities(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.Boolean)">
+            <summary>
+            Установить/снять отметку требования прохождения обязательного контроля (подозрение в террористической деятельности) для документа. 
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <param name="setMark">Признак установки отметки (true - установить/false - снять)</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTerroristActivities(System.String@)">
+            <summary>
+            Проверка полей документа в подозрении на террористическую деятельность
+            </summary>
+            <param name="message">Сообщение об ошибке</param>
+            <returns>Возвращает true - проверка пройдена</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckManualControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Проверка документа прохождения ручного контроля
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <returns>true - проверка пройдена, документ прошел ручной контроль или контроль не требуется</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.SetManualControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.String)">
+            <summary>
+            Постановка документа на ручной контроль
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <param name="comment">Причина постановки на ручной контроль</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckTransitDocumentControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32)">
+            <summary>
+            Проверить требуется ли контроль проводок между транзитными и текущими счетами
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <returns>true - проверка пройдена документ не требует контроля проводки между транзитным и текущим счетом</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsDocumentAddInTableOrder(UbsService.IUbsDbConnection,UbsService.IUbsWss,System.Int32,System.Byte)">
+            <summary>
+            Получить признак добавления ордера в табличный ордер
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="documentId">Идентификатор документа</param>
+            <param name="razdel">Раздел баланса</param>
+            <returns>true - ордер в составе табличного ордера</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsNeedManualControl(UbsService.IUbsDbConnection,UbsService.IUbsWss,UbsBusiness.UbsODPayDoc,System.DateTime)">
+            <summary>
+            Определить необходимость прохождения ручного контроля для документа раздела А
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="ubs">Интерфейс взаимодействия с сервером приложений</param>
+            <param name="document">Документ раздела А</param>
+            <param name="operationDate">Дата операции</param>
+            <returns>true - Документ следует поставить на ручной контроль</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.IsBudgetPayment(System.String,UbsService.IUbsWss)">
+            <summary>
+            Платеж в бюджетную систему
+            </summary>
+            <param name="straccountR">Счет получателя</param>
+            <param name="ubs"></param>
+            <returns>true - платеж в бюджетную систему РФ</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.CheckPodFTControl(UbsBusiness.UbsODPayDoc,System.String@)">
+            <summary>
+            Определить необходимость прохождения контроля ПОД/ФТ для документа раздела А
+            </summary>
+            <param name="document">Документ раздела А</param>
+            <param name="message">Причина попадания на дополнительный контроль ПОД/ФТ</param>
+            <returns>true - Документ следует поставить на контроля ПОД/ФТ</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.GetDocumentInnPodFT(UbsBusiness.UbsODPayDoc,System.Boolean,System.String@,System.String@)">
+            <summary>
+            Получить ИНН и Наименование корреспондента для ПОД/ФТ
+            </summary>
+            <param name="document">Документ разддела А</param>
+            <param name="byPayer">true - по плательщику, false - по получателю</param>
+            <param name="inn">ИНН плательщика/получателя</param>
+            <param name="name">Наименование плательщика/получателя</param>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.Document">
+            <summary>
+            Установить новый документ
+            </summary>
+        </member>
+        <member name="T:UbsBusiness.UbsODCheckDocument.AccountInfo">
+            <summary>
+            Упрощенная информация по счету
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.AccountInfo.Initialize(UbsService.IUbsDbConnection,System.String,System.DateTime)">
+            <summary>
+            Получить упрощенную информацию по счету
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="straccount">Номер счета</param>
+            <param name="startDate">Дата начала периода получения остатков</param>
+            <returns>Упрощенная информация по счету</returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.AccountInfo.Initialize(UbsService.IUbsDbConnection,System.Int32,System.DateTime)">
+            <summary>
+            Получить упрощенную информацию по счету
+            </summary>
+            <param name="connection">Интерфейс взаимодействия с БД</param>
+            <param name="accountId">Идентификатор счета</param>
+            <param name="startDate">Дата начала периода получения остатков</param>
+            <returns>Упрощенная информация по счету</returns>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.Saldo">
+            <summary>
+            Остатки за период
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.State">
+            <summary>
+            Состояние счета
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.Activ">
+            <summary>
+            Активность счета
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.VerLimit">
+            <summary>
+            Тип проверки остатка
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.Limit">
+            <summary>
+            Сумма проверки остатка
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.DateLimit">
+            <summary>
+            Дата проверки остатка
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.IsBlockSum">
+            <summary>
+            Признак наличия записей о приостановлениях по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.IdCurrency">
+            <summary>
+            Идентификатор валюты
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.Straccount">
+            <summary>
+            Номер счета
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountInfo.Id">
+            <summary>
+            Идентификатор счета
+            </summary>
+        </member>
+        <member name="T:UbsBusiness.UbsODCheckDocument.MakeNameParameters">
+            <summary>
+            Параметры формирования наименования плательщика/получателя
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameParameters.#ctor">
+            <summary>
+            Конструктор
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameParameters.#ctor(UbsBusiness.UbsODPayDoc)">
+            <summary>
+            Конструктор
+            </summary>
+            <param name="document">Объект документа</param>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Clone">
+            <summary>
+            
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameParameters.GetAccountPayer">
+            <summary>
+            Получить счет плательщика или счет дебет
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.MakeNameParameters.GetAccountRecipient">
+            <summary>
+            Получить счет получателя или счет кредит
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.AccountDebit">
+            <summary>
+            Номер счета дебeта
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.AccountPayer">
+            <summary>
+            Номер счета плательщика
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.AccountCredit">
+            <summary>
+            Номер счета кредита
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.AccountRecipient">
+            <summary>
+            Номер счета получателя
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Client">
+            <summary>
+            Клиент для которого должно быть вычислено наименование, иначе вычисляется по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.KindDoc">
+            <summary>
+            Вид документа
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeDoc">
+            <summary>
+            Тип документа
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.PayLocate">
+            <summary>
+            Признак плательщика
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Field101">
+            <summary>
+            Статус составителя расчетного документа
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.SummaDebit">
+            <summary>
+            Сумма документа дебит
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.DateDoc">
+            <summary>
+            Дата документа
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.BicExtBank">
+            <summary>
+            Бик внешнего банка
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeClientName">
+            <summary>
+            Тип формата наименования клиента
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.UIN">
+            <summary>
+            УИН
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.IsRBClientName">
+            <summary>
+            Формировать наименование для ДБО
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.InnPayer">
+            <summary>
+            ИНН плательщика
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.InnRecipient">
+            <summary>
+            ИНН получателя
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.KBK">
+            <summary>
+            КБК
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.KppPayer">
+            <summary>
+            КПП плательщика
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.KppRecipient">
+            <summary>
+            КПП получателя
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Name">
+            <summary>
+            Полученное наименование
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Inn">
+            <summary>
+            Полученный ИНН
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Kpp">
+            <summary>
+            Полученный КПП
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.Oktmo">
+            <summary>
+            Полученный ОКТМО
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TestingName">
+            <summary>
+            Полученное наименование для сравнения
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.MakeNameParameters.ClientId">
+            <summary>
+            Полученный идентификатор клиента
+            </summary>
+        </member>
+        <member name="T:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeName">
+            <summary>
+            Тип формата наименования
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeName.Normal">
+            <summary>
+            По умолчанию
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeName.Long">
+            <summary>
+            Длинный
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeName.Reduce">
+            <summary>
+            Укороченный
+            </summary>
+        </member>
+        <member name="F:UbsBusiness.UbsODCheckDocument.MakeNameParameters.TypeName.Short">
+            <summary>
+            Краткий
+            </summary>
+        </member>
+        <member name="T:UbsBusiness.UbsODCheckDocument.AccountPrognosis">
+            <summary>
+            Параметры учета прогнозируемого остатка 
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.AccountPrognosis.#ctor">
+            <summary>
+            Конструктор
+            </summary>
+        </member>
+        <member name="M:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SetAllNeedSum(System.Boolean)">
+            <summary>
+            Выставить все признаки учета сумм
+            </summary>
+            <param name="needed">Требуемое значение учета</param>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.WhereEndDate">
+            <summary>
+            Дата конца интервала поиска
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.WhereKindDocumentAre">
+            <summary>
+             Виды документов включаемые в поиск
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.WhereIdDocumentNotAre">
+            <summary>
+             Документы исключаемые из поиска
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedOborotSum">
+            <summary>
+            Учесть обороты по документам
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedCardIndexSum">
+            <summary>
+            Учесть задолжность по картотеки
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedOborotCardIndexSum">
+            <summary>
+            Учесть обороты по документам на картотеке
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedBlockedSum">
+            <summary>
+            Учесть приостановления
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedComissionSumRKO">
+            <summary>
+            Учесть рассчитанные комиссии за РКО
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedSaldoSum">
+            <summary>
+            Учесть остаток по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedMinimumSaldoSum">
+            <summary>
+            Учесть минимальный остаток по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.NeedAccountInformation">
+            <summary>
+            Учесть информацию по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOborotDb">
+            <summary>
+            Сумма оборотов по ДБ
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOborotCr">
+            <summary>
+            Сумма оборотов по КР
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumCardIndex1">
+            <summary>
+            Сумма картотеки 1 
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumCardIndex2">
+            <summary>
+            Сумма картотеки 2
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOborotCardIndex1Db">
+            <summary>
+            Сумма картотеки 1 ДБ
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOborotCardIndex1Cr">
+            <summary>
+            Сумма картотеки 1 КР
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOborotCardIndex2Db">
+            <summary>
+            Сумма картотеки 2 ДБ
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOborotCardIndex2Cr">
+            <summary>
+            Сумма картотеки 2 КР
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumCardIndexCurrency2">
+            <summary>
+            Сумма валютной картотеки 2
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumCardIndexCurrency2InCurrency">
+            <summary>
+            Сумма валютной картотеки 2 в валюте счета
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.IsArrest">
+            <summary>
+            Счет арестован ИФНС
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumBlockedTax">
+            <summary>
+            Сумма приостановлений ИФНС (в валюте счета)
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumBlockedBailiffsService">
+            <summary>
+            Сумма приостановлений ССП (в валюте счета)
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumBlockedFTS">
+            <summary>
+            Сумма приостановлений ФТС (в валюте счета)
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumComissionRKO">
+            <summary>
+            Сумма комиссий за РКО
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.ContractIdRKO">
+            <summary>
+            Идентификатор договора РКО
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumSaldo">
+            <summary>
+            Сумма остатка по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumMinimumSaldo">
+            <summary>
+            Сумма минимального остатка по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumMaximumSaldo">
+            <summary>
+            Сумма максимального остатка по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.SumOverdraftSaldo">
+            <summary>
+            Сумма овердрафта остатка по счету
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.Activity">
+            <summary>
+            Активность счета
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.StateText">
+            <summary>
+            Состояние счета (текстовое представление)
+            открыт, закрыт, заблокирован, заморожен, зарезервирован, удален
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.KindСheckingSaldo">
+            <summary>
+            Вид проверки остатка счета
+            красное сальдо, минимальный остаток, овердрафт, нет проверки, максимальный остаток
+            </summary>
+        </member>
+        <member name="P:UbsBusiness.UbsODCheckDocument.AccountPrognosis.AccountNumber">
+            <summary>
+            Номер счета
+            </summary>
+        </member>
+    </members>
+</doc>
